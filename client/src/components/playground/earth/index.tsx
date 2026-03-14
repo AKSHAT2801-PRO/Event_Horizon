@@ -1,60 +1,60 @@
 import { Gltf } from "@react-three/drei";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { Markers, MarkerData } from "./markers";
+import { EarthContext } from "@/context/EarthContext";
+import { useFrame } from "@react-three/fiber";
 
-const EARTH_RADIUS = 78.62 / 2;
-const SURFACE_OFFSET = 1.01; // adjust to match your model's actual scale
-const LNG_OFFSET = 90;
+const EARTH_TILT = ((-23.4 * Math.PI) / 180) * 2;
 
-// Convert lat/lng to a 3D position on the globe
-function latLngToVector3(lat: number, lng: number): THREE.Vector3 {
-  const latRad = (lat * Math.PI) / 180;
-  const lngRad = ((lng + LNG_OFFSET) * Math.PI) / 180;
-  const radius = EARTH_RADIUS * SURFACE_OFFSET;
-  return new THREE.Vector3(
-    radius * Math.cos(latRad) * Math.sin(lngRad), // X
-    radius * Math.sin(latRad), // Y
-    radius * Math.cos(latRad) * Math.cos(lngRad), // Z
-  );
-}
-
-const markers = [
+const DEFAULT_MARKERS: MarkerData[] = [
   { name: "New York", lat: 40.7128, lng: -74.006 },
   { name: "London", lat: 51.5074, lng: -0.1278 },
   { name: "Tokyo", lat: 35.6762, lng: 139.6503 },
-  { name: "Shri Lanks", lat: 8.036409, lng: 80.575488 },
+  { name: "Sri Lanka", lat: 8.036409, lng: 80.575488 },
 ];
 
-export default function Earth() {
+interface EarthProps {
+  markers?: MarkerData[];
+  animate?: boolean;
+  children?: React.ReactNode;
+}
+
+export default function Earth({
+  markers = DEFAULT_MARKERS,
+  animate,
+  children,
+}: EarthProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ref = useRef<any>(null);
-  const TILT = ((-23.4 * Math.PI) / 180) * 2;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupRef = useRef<any>(null);
+  const [earthRadius, setEarthRadius] = useState<number>(0);
 
-  // Inside a useEffect after the model loads:
   useEffect(() => {
     if (ref.current) {
       const box = new THREE.Box3().setFromObject(ref.current);
       const size = box.getSize(new THREE.Vector3());
-      console.log("Model size:", size); // Use size.x / 2 as your radius
+      setEarthRadius(size.x / 2);
+      console.log("Earth radius:", size.x / 2);
     }
   }, []);
 
-  return (
-    <group rotation={[TILT, 0, 0]}>
-      {/* Earth model */}
-      <Gltf ref={ref} src="/assets/playground/models/earth.glb" />
+  useFrame((_, delta) => {
+    if (animate && ref.current) {
+      const speed = 0.05; // radians per second
+      groupRef.current.rotation.y += speed * delta;
+    }
+  });
 
-      {/* Lat/Lng Markers */}
-      {markers.map(({ name, lat, lng }) => {
-        const pos = latLngToVector3(lat, lng);
-        console.log(pos);
-        return (
-          <mesh key={name} position={pos}>
-            <sphereGeometry args={[0.5, 8, 8]} />
-            <meshStandardMaterial color="red" />
-          </mesh>
-        );
-      })}
-    </group>
+  return (
+    <EarthContext value={{ ref, radius: earthRadius }}>
+      <group ref={groupRef} rotation={[EARTH_TILT, 0, 0]}>
+        <Gltf ref={ref} src="/assets/playground/models/earth.glb" />
+        <Markers markers={markers} />
+        {/* Only render children once radius is known */}
+        {earthRadius > 0 && children}
+      </group>
+    </EarthContext>
   );
 }
