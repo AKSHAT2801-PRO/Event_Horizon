@@ -35,7 +35,7 @@ export default function PlayGround() {
             target={[0, 40, 0]}
             // maxPolarAngle={Math.PI / 2}
           />
-          <Earth>
+          <Earth animate>
             {METEOR_DATA.map(({ id, ...props }) => (
               <Meteor key={id} {...props} loop />
             ))}

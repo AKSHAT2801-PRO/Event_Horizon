@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { Markers, MarkerData } from "./markers";
 import { EarthContext } from "@/context/EarthContext";
+import { useFrame } from "@react-three/fiber";
 
 const EARTH_TILT = ((-23.4 * Math.PI) / 180) * 2;
 
@@ -15,15 +16,19 @@ const DEFAULT_MARKERS: MarkerData[] = [
 
 interface EarthProps {
   markers?: MarkerData[];
+  animate?: boolean;
   children?: React.ReactNode;
 }
 
 export default function Earth({
   markers = DEFAULT_MARKERS,
+  animate,
   children,
 }: EarthProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ref = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupRef = useRef<any>(null);
   const [earthRadius, setEarthRadius] = useState<number>(0);
 
   useEffect(() => {
@@ -35,9 +40,16 @@ export default function Earth({
     }
   }, []);
 
+  useFrame((_, delta) => {
+    if (animate && ref.current) {
+      const speed = 0.05; // radians per second
+      groupRef.current.rotation.y += speed * delta;
+    }
+  });
+
   return (
     <EarthContext value={{ ref, radius: earthRadius }}>
-      <group rotation={[EARTH_TILT, 0, 0]}>
+      <group ref={groupRef} rotation={[EARTH_TILT, 0, 0]}>
         <Gltf ref={ref} src="/assets/playground/models/earth.glb" />
         <Markers markers={markers} />
         {/* Only render children once radius is known */}

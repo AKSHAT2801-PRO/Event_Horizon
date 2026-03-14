@@ -78,11 +78,17 @@ export function MeteorTrail({
 
     if (!trail || !meteor) return;
 
-    if (!trail.parent) scene.add(trail);
+    if (!trail.parent && meteor.parent) {
+      meteor.parent.add(trail);
+    }
 
     meteor.updateWorldMatrix(true, false);
 
     worldPos.setFromMatrixPosition(meteor.matrixWorld);
+
+    // convert world -> parent local
+    meteor.parent?.worldToLocal(worldPos);
+
     if (worldPos.lengthSq() < 0.001) return;
 
     const currentScale = meteor.scale.x;
