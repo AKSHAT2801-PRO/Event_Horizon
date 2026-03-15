@@ -7,15 +7,24 @@ import json
 import traceback
 
 def serialize_doc(doc):
-    """Convert MongoDB documents to JSON-serializable format"""
     if doc is None:
         return None
+    
     if isinstance(doc, ObjectId):
         return str(doc)
+    
     if isinstance(doc, dict):
-        return {k: serialize_doc(v) for k, v in doc.items()}
+        new_doc = {}
+        for k, v in doc.items():
+            if k == "_id":
+                new_doc["id"] = str(v)
+            else:
+                new_doc[k] = serialize_doc(v)
+        return new_doc
+    
     if isinstance(doc, list):
-        return [serialize_doc(item) for item in doc]
+        return [serialize_doc(i) for i in doc]
+    
     return doc
 
 async def handle_search_event(
@@ -66,8 +75,8 @@ async def handle_search_event(
         except Exception as db_err:
             # Fall back to mock events if database fails
             print(f"Database query failed: {str(db_err)}, using mock events")
+    
         
-        # If no events from database, use mock events
         return events
     
     except HTTPException:

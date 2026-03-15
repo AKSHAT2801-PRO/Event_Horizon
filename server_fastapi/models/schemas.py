@@ -4,6 +4,7 @@ from datetime import datetime
 
 # Event Schemas
 class EventResponse(BaseModel):
+    id: str  # MongoDB _id
     name: str
     date: str
     peakMagnitude: float
@@ -46,12 +47,14 @@ class TrajectoryResult(BaseModel):
     start_point: Point
     end_point: Point
     mass: float
+    duration: float
     initial_velocity: float
     entry_angle_degree: float
     median_residual_arcsec: float
     quality_angle_q: float
 
 class TrajectoryResponse(BaseModel):
+    traj_id: str  # MongoDB _id
     startLat: float
     startLng: float
     startAltKm: float
@@ -59,4 +62,5 @@ class TrajectoryResponse(BaseModel):
     endLng: float
     endAltKm: float
     mass: float
+    duration: float
     initial_velocity: float
