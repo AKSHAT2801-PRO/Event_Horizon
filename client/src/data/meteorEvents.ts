@@ -178,14 +178,5 @@ export const FILTERS = {
     "Draconids",
     "Eta Aquariids",
   ],
-  region: [
-    "All",
-    "North America",
-    "South America",
-    "Europe",
-    "Asia",
-    "Africa",
-    "Oceania",
-    "Russia",
-  ],
+  region: ["All"],
 };

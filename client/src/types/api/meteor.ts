@@ -7,4 +7,5 @@ export interface IMeteorTrajectory {
   endAltKm: number;
   mass: number;
   initial_velocity: number;
+  _id: string;
 }

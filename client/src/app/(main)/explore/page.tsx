@@ -8,18 +8,17 @@ import EventDetail from "@/components/EventDetail";
 import PlaygroundButton from "@/components/PlaygroundButton";
 import { METEOR_EVENTS, FILTERS, type MeteorEvent } from "@/data/meteorEvents";
 import CompareNavButton from "@/components/CompareNavButton";
-import { getMeteorEvents } from "@/lib/api/meteor";
+import {
+  getEventRegions,
+  getEventShowers,
+  getMeteorEvents,
+} from "@/lib/api/meteor";
 import { Popover } from "@radix-ui/react-popover";
 import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-
-const FILTER_CATEGORIES = [
-  { key: "shower", label: "SHOWER", options: FILTERS.shower },
-  { key: "region", label: "REGION", options: FILTERS.region },
-] as const;
 
 const Index = () => {
   const [search, setSearch] = useState("");
@@ -33,6 +32,13 @@ const Index = () => {
   });
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [regions, setRegions] = useState<string[]>(["All"]);
+  const [showers, setShowers] = useState<string[]>(["All"]);
+
+  const FILTER_CATEGORIES = [
+    { key: "shower", label: "SHOWER", options: showers },
+    { key: "region", label: "REGION", options: regions },
+  ] as const;
 
   const toggleFilter = (category: string, value: string) => {
     setFilters((prev) => ({ ...prev, [category]: value }));
@@ -55,8 +61,38 @@ const Index = () => {
       }
     }, 400);
 
+    const loadRegions = async () => {
+      const res = await getEventRegions();
+      if (res) {
+        setRegions(["All", ...res]);
+      }
+    };
+    const loadShowers = async () => {
+      const res = await getEventShowers();
+      if (res) {
+        setShowers(["All", ...res]);
+      }
+    };
+
+    loadRegions();
+    loadShowers();
+
     return () => clearTimeout(timeout);
   }, [search, filters, dateFrom, dateTo]);
+
+  useEffect(() => {
+    const loadRegions = async () => {
+      const res = await getEventRegions();
+      if (res) setRegions(["All", ...res]);
+    };
+    const loadShowers = async () => {
+      const res = await getEventShowers();
+      if (res) setShowers(["All", ...res]);
+    };
+
+    loadRegions();
+    loadShowers();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">

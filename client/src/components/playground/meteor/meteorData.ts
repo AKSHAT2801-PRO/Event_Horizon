@@ -2,13 +2,9 @@ import { MeteorPathInput } from "./useMeteorPath";
 
 export interface MeteorData extends MeteorPathInput {
   id: string;
-  label: string;
-  type: "impactor" | "flyby" | "grazer";
-  description: string;
-  color: string;
 }
 
-function velToward(
+export function velToward(
   fromLat: number,
   fromLng: number,
   fromAlt: number,
@@ -44,41 +40,90 @@ function velToward(
 }
 
 /**
- * Altitude reference:
- *   ~100 km   — Kármán line (edge of atmosphere), where meteors glow
- *   ~500 km   — Low Earth Orbit
- *   ~2000 km  — clearly visible in space above Earth
- *   ~10000 km — very far out, dramatic approach
+ * Derives a color from meteor mass (kg).
  *
- * Use 3000–8000 km for cinematic spawn distances.
- * endAltKm = 0 for impactors, 200–500 for fly-bys/grazers.
+ * Mass scale (approximate):
+ *   < 1e-3  kg  — tiny/dust   → cool blue-white  #a0d8ff
+ *   1e-3–1  kg  — small       → yellow-white      #ffe680
+ *   1–1000  kg  — medium      → orange            #ff8c00
+ *   > 1000  kg  — large/major → deep red          #ff1a1a
  */
+export function massToColor(m0: number): string {
+  const log = Math.log10(Math.max(m0, 1e-12));
+
+  // Gradient stops: [log10(mass), r, g, b]
+  const stops: [number, number, number, number][] = [
+    [-6, 160, 216, 255], // blue-white
+    [-3, 255, 230, 128], // yellow
+    [0, 255, 160, 64], // orange
+    [2, 255, 69, 0], // deep orange-red
+    [3, 255, 26, 26], // red
+  ];
+
+  // Clamp to range
+  if (log <= stops[0][0])
+    return rgbToHex(stops[0][1], stops[0][2], stops[0][3]);
+  if (log >= stops[stops.length - 1][0]) {
+    const last = stops[stops.length - 1];
+    return rgbToHex(last[1], last[2], last[3]);
+  }
+
+  // Find surrounding stops and interpolate
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [l0, r0, g0, b0] = stops[i];
+    const [l1, r1, g1, b1] = stops[i + 1];
+    if (log >= l0 && log <= l1) {
+      const t = (log - l0) / (l1 - l0);
+      return rgbToHex(
+        Math.round(r0 + t * (r1 - r0)),
+        Math.round(g0 + t * (g1 - g0)),
+        Math.round(b0 + t * (b1 - b0)),
+      );
+    }
+  }
+
+  return "#ff6a00";
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
 export const METEOR_DATA: MeteorData[] = [
+  // ── REAL EVENT ─────────────────────────────────────────────────────────────
+  {
+    id: "2019010209_1919",
+    startLat: 34.182484,
+    startLng: -107.79249,
+    startAltKm: 98.5712,
+    endLat: 34.300408,
+    endLng: -107.698611,
+    endAltKm: 83.9707,
+    ...velToward(
+      34.182484,
+      -107.79249,
+      98.5712,
+      34.300408,
+      -107.698611,
+      83.9707,
+      33.4824,
+    ),
+    m0: 8.83e-5,
+  },
+
   // ── IMPACTORS ──────────────────────────────────────────────────────────────
   {
     id: "chelyabinsk",
-    label: "Chelyabinsk (2013)",
-    type: "impactor",
-    description:
-      "18m asteroid, ~500kt airburst over Russia. Real speed: 18.6 km/s.",
     startLat: 62.0,
     startLng: 68.0,
-    startAltKm: 5000, // spawn far in space
+    startAltKm: 5000,
     endLat: 54.8,
     endLng: 61.1,
-    endAltKm: 0, // hits Chelyabinsk
+    endAltKm: 0,
     ...velToward(62.0, 68.0, 5000, 54.8, 61.1, 0, 18.6),
     m0: 100,
-    k: 0.08,
-    color: "#ff8c00",
-    willImpact: true,
   },
   {
     id: "tunguska",
-    label: "Tunguska (1908)",
-    type: "impactor",
-    description:
-      "50–80m bolide, 10–15Mt airburst over Siberia. Real speed: 27 km/s.",
     startLat: 72.0,
     startLng: 50.0,
     startAltKm: 6000,
@@ -87,15 +132,9 @@ export const METEOR_DATA: MeteorData[] = [
     endAltKm: 0,
     ...velToward(72.0, 50.0, 6000, 60.9, 101.9, 0, 27.0),
     m0: 200,
-    k: 0.12,
-    color: "#ff4500",
-    willImpact: true,
   },
   {
     id: "kpg",
-    label: "K-Pg Impactor (~66 Ma)",
-    type: "impactor",
-    description: "~10km asteroid, ended Cretaceous. Yucatan peninsula impact.",
     startLat: 35.0,
     startLng: -115.0,
     startAltKm: 8000,
@@ -104,55 +143,35 @@ export const METEOR_DATA: MeteorData[] = [
     endAltKm: 0,
     ...velToward(35.0, -115.0, 8000, 21.4, -89.5, 0, 20.0),
     m0: 500,
-    k: 0.02,
-    color: "#ff0044",
-    willImpact: true,
   },
 
   // ── FLY-BY ─────────────────────────────────────────────────────────────────
   {
     id: "flyby-2023dw",
-    label: "2023 DW Fly-by",
-    type: "flyby",
-    description:
-      "Near-Earth asteroid, passed at ~0.1 AU. Clean miss at 22 km/s.",
     startLat: 25.0,
     startLng: -85.0,
     startAltKm: 5000,
     endLat: -15.0,
     endLng: -30.0,
-    endAltKm: 4000, // exits high — clean miss
+    endAltKm: 4000,
     ...velToward(25.0, -85.0, 5000, -15.0, -30.0, 4000, 22.0),
     m0: 80,
-    k: 0.0,
-    color: "#00cfff",
-    willImpact: false,
   },
 
   // ── EARTH-GRAZERS ──────────────────────────────────────────────────────────
   {
     id: "grazer-1972",
-    label: "1972 Great Daylight Fireball",
-    type: "grazer",
-    description:
-      "~4m object skipped off atmosphere at 58km over North America.",
     startLat: 35.0,
     startLng: -120.0,
     startAltKm: 4000,
     endLat: 52.0,
     endLng: -110.0,
-    endAltKm: 3000, // exits at altitude
+    endAltKm: 3000,
     ...velToward(35.0, -120.0, 4000, 52.0, -110.0, 3000, 15.0),
     m0: 70,
-    k: 0.04,
-    color: "#aaff00",
-    willImpact: false,
   },
   {
     id: "grazer-deep",
-    label: "Deep Grazer (Hypothetical)",
-    type: "grazer",
-    description: "Deeper skim over Atlantic — enters atmosphere, barely exits.",
     startLat: 28.0,
     startLng: -65.0,
     startAltKm: 4500,
@@ -161,12 +180,5 @@ export const METEOR_DATA: MeteorData[] = [
     endAltKm: 3500,
     ...velToward(28.0, -65.0, 4500, 42.0, -15.0, 3500, 12.0),
     m0: 90,
-    k: 0.06,
-    color: "#88ffcc",
-    willImpact: false,
   },
 ];
-
-export const IMPACTORS = METEOR_DATA.filter((m) => m.type === "impactor");
-export const FLYBYS = METEOR_DATA.filter((m) => m.type === "flyby");
-export const GRAZERS = METEOR_DATA.filter((m) => m.type === "grazer");

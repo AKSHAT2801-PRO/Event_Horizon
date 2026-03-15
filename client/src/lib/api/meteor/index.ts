@@ -3,18 +3,64 @@ import { apiClient } from "../apiClient";
 import { MeteorEvent } from "@/data/meteorEvents";
 
 export const getMeteorTrajectory = async (
-  id = "EVT_20250314_001",
+  id?: string,
 ): Promise<IMeteorTrajectory | null> => {
   try {
-    const response = await apiClient.get("/meteor/trajectory", {
+    const response = await apiClient.get("/trajectory", {
       params: {
-        event_id: id,
+        ...(id && { event_id: id }),
       },
     });
+
+    console.log(response.data);
     return response.data as IMeteorTrajectory;
   } catch (e) {
     console.error(e);
   }
+
+  return null;
+};
+
+export const getRandomMeteorTrajectory =
+  async (): Promise<IMeteorTrajectory | null> => {
+    try {
+      const response = await apiClient.get("/trajectory/random");
+
+      console.log(response.data);
+      return {
+        ...response.data,
+        _id: response.data.traj_id,
+      } as IMeteorTrajectory;
+    } catch (e) {
+      console.error(e);
+    }
+
+    return null;
+  };
+
+export const getEventRegions = async (): Promise<string[] | null> => {
+  try {
+    const response = await apiClient.get("/event/regions");
+
+    console.log(response.data);
+    return response.data as string[];
+  } catch (e) {
+    console.error(e);
+  }
+
+  return null;
+};
+
+export const getEventShowers = async (): Promise<string[] | null> => {
+  try {
+    const response = await apiClient.get("/event/showers");
+
+    console.log(response.data);
+    return response.data as string[];
+  } catch (e) {
+    console.error(e);
+  }
+
   return null;
 };
 
@@ -29,7 +75,7 @@ interface MeteorEventsProps {
   };
 }
 export const getMeteorEvents = async ({
-  page = 0,
+  page = 1,
   searchString,
   filters = {
     shower: "All",
@@ -55,7 +101,6 @@ export const getMeteorEvents = async ({
         date: new Date(meteorEvent.date).toLocaleDateString(undefined, {
           dateStyle: "medium",
         }),
-        id: meteorEvent._id,
       }),
     ) as MeteorEvent[];
   } catch (e) {
