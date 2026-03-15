@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
@@ -14,6 +15,7 @@ import { Leva, useControls } from "leva";
 import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import {
   getMeteorTrajectory,
+  getMeteorTrajectoryByTrajId,
   getRandomMeteorTrajectory,
 } from "@/lib/api/meteor";
 import { IMeteorTrajectory } from "@/types/api/meteor";
@@ -31,17 +33,24 @@ import {
 } from "lucide-react";
 import { MeteorSimProvider, useMeteorSim } from "@/context/MeteorSimContext";
 import * as THREE from "three";
+import { AreaChart, Area, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
 const ALT_SCALE = 50;
 
 interface TrackedMeteor {
   uid: string;
-  eventId: string;
+  trajId: string;
   data: IMeteorTrajectory;
 }
 
 interface HitInfo {
-  eventId: string;
+  trajId: string;
   mass: number;
   color: string;
   screenX: number;
@@ -175,13 +184,13 @@ function SceneRaycaster({ meteorData, trackedMeteors, onHit }: RaycasterProps) {
         if ((obj as any).userData?.isMeteor) targets.push(obj);
       });
 
-      const hits = raycaster.current.intersectObjects(targets, false);
+      const hits = raycaster.current.intersectObjects(targets, true);
 
       if (hits.length > 0) {
         const hit = hits[0];
         const userData = (hit.object as any).userData;
         onHit({
-          eventId: userData.meteorId ?? "unknown",
+          trajId: userData.meteorId ?? "unknown",
           mass: userData.mass ?? 0,
           color: userData.color ?? "#ffffff",
           screenX: e.clientX,
@@ -199,27 +208,51 @@ function SceneRaycaster({ meteorData, trackedMeteors, onHit }: RaycasterProps) {
   return null;
 }
 
-// ─── Hit info tooltip ─────────────────────────────────────────────────────────
+const DUMMY_CURVE = [
+  { t: 0.0, v: 19.94 },
+  { t: 0.2, v: 18.5 },
+  { t: 0.4, v: 16.2 },
+  { t: 0.6, v: 13.8 },
+  { t: 0.8, v: 10.1 },
+  { t: 1.0, v: 6.3 },
+  { t: 1.2, v: 3.1 },
+  { t: 1.4, v: 1.2 },
+];
 
+const chartConfig = {
+  v: { label: "Velocity", color: "rgba(96,165,250,0.8)" },
+} satisfies ChartConfig;
+
+// ─── Hit info tooltip ─────────────────────────────────────────────────────────
 function HitTooltip({ hit, onClose }: { hit: HitInfo; onClose: () => void }) {
+  const [state, setState] = useState<{
+    data: IMeteorTrajectory | null;
+    loading: boolean;
+  }>({ data: null, loading: true });
+
+  const { data, loading } = state;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    console.log(hit.trajId);
+    getMeteorTrajectoryByTrajId(hit.trajId).then((data) => {
+      if (!cancelled) setState({ data, loading: false });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hit.trajId]);
+
   return (
     <div
       className="absolute z-20 pointer-events-none"
-      style={{
-        left: hit.screenX + 12,
-        top: hit.screenY - 8,
-      }}
+      style={{ left: hit.screenX + 12, top: hit.screenY - 8 }}
     >
       <div className="pointer-events-auto bg-black/80 border border-white/20 rounded-lg px-3 py-2.5 backdrop-blur min-w-44 shadow-xl">
-        {/* color swatch + id */}
         <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ background: hit.color }}
-            />
-            <span className="text-[10px] text-white/50 font-mono">meteor</span>
-          </div>
+          <span className="text-[10px] text-white/50 font-mono">meteor</span>
           <button
             onClick={onClose}
             className="text-white/30 hover:text-white/80 transition"
@@ -228,21 +261,78 @@ function HitTooltip({ hit, onClose }: { hit: HitInfo; onClose: () => void }) {
           </button>
         </div>
 
-        <div className="space-y-1">
-          <div className="flex justify-between gap-4">
-            <span className="text-[10px] text-white/40 font-mono">id</span>
-            <span className="text-[10px] text-white font-mono truncate max-w-28">
-              {hit.eventId}
-            </span>
+        {loading ? (
+          <div className="flex justify-center py-2">
+            <Loader2 size={14} className="animate-spin text-white/40" />
           </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-[10px] text-white/40 font-mono">mass</span>
-            <span className="text-[10px] text-white font-mono">
-              {hit.mass.toExponential(2)} kg
-            </span>
+        ) : !data ? (
+          <span className="text-[10px] text-red-400 font-mono">not found</span>
+        ) : (
+          <div className="space-y-1">
+            <Row label="id" value={data._id} />
+            <Row label="mass" value={`${data.mass.toExponential(2)} kg`} />
+            <Row
+              label="velocity"
+              value={`${data.initial_velocity.toFixed(2)} km/s`}
+            />
+            <Row label="lat" value={`${data.startLat.toFixed(2)}°`} />
+            <Row label="lng" value={`${data.startLng.toFixed(2)}°`} />
+            <Row label="alt" value={`${data.startAltKm.toFixed(1)} km`} />
+            <div className="mt-2 border-t border-white/10 pt-2">
+              <span className="text-[10px] text-white/40 font-mono">
+                velocity time curve
+              </span>
+              <ChartContainer
+                config={chartConfig}
+                className="h-16 w-full mt-1 aspect-auto"
+              >
+                <AreaChart
+                  data={DUMMY_CURVE}
+                  margin={{ top: 2, right: 2, bottom: 0, left: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="vGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="rgba(96,165,250,0.3)" />
+                      <stop offset="95%" stopColor="rgba(96,165,250,0)" />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="t" hide />
+                  <YAxis hide domain={["auto", "auto"]} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(v) => [
+                          `${Number(v).toFixed(2)} km/s`,
+                          "velocity",
+                        ]}
+                      />
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="v"
+                    stroke="rgba(96,165,250,0.8)"
+                    strokeWidth={1.5}
+                    fill="url(#vGrad)"
+                    dot={false}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-[10px] text-white/40 font-mono">{label}</span>
+      <span className="text-[10px] text-white font-mono truncate max-w-28">
+        {value}
+      </span>
     </div>
   );
 }
@@ -290,7 +380,7 @@ function PlayGroundInner() {
         const uid = `${traj._id}-${Date.now()}`;
         setTrackedMeteors((prev) => [
           ...prev,
-          { uid, eventId: traj._id, data: traj },
+          { uid, trajId: traj._id, data: traj },
         ]);
         setMeteorData((prev) => [...prev, trajectoryToMeteorData(traj)]);
       }
@@ -368,7 +458,7 @@ function PlayGroundInner() {
                         key={m.uid}
                         className="flex items-center justify-between px-3 py-2 text-white/80 text-xs"
                       >
-                        <span className="font-mono truncate">{m.eventId}</span>
+                        <span className="font-mono truncate">{m.trajId}</span>
                         <button
                           onClick={() => handleRemoveMeteor(m.uid)}
                           className="ml-2 p-1 rounded hover:bg-white/10 text-white/50 hover:text-red-400 transition shrink-0"
@@ -521,9 +611,10 @@ function PlayGroundInner() {
           <directionalLight position={[0, 0, -30]} />
           <OrbitControls target={[0, 40, 0]} />
           <Suspense fallback={null}>
-            <Earth>
+            <Earth animate={!paused}>
               {meteorData.map(({ id, ...props }) => (
                 <Meteor
+                  id={id}
                   key={id}
                   {...props}
                   color={massToColor(props.m0)}

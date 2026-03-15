@@ -21,6 +21,21 @@ export const getMeteorTrajectory = async (
   return null;
 };
 
+export const getMeteorTrajectoryByTrajId = async (
+  id: string,
+): Promise<IMeteorTrajectory | null> => {
+  try {
+    const response = await apiClient.get(`/trajectory/${id}`);
+
+    console.log(response.data);
+    return response.data as IMeteorTrajectory;
+  } catch (e) {
+    console.error(e);
+  }
+
+  return null;
+};
+
 export const getRandomMeteorTrajectory =
   async (): Promise<IMeteorTrajectory | null> => {
     try {

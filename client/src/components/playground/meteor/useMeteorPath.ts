@@ -32,6 +32,7 @@ export function geoToModel(
 }
 
 export interface MeteorPathInput {
+  id?: string;
   // ── From backend ──────────────────────────────────────────────────────────
   /** Start position from backend */
   startLat: number;
