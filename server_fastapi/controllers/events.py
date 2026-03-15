@@ -32,10 +32,12 @@ async def handle_search_event(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     shower: Optional[str] = None,
-    region: Optional[str] = None
+    region: Optional[str] = None,
+    page: int = 1
 ) -> List[Dict]:
     """
     Search for events by shower code or region, optionally filtered by date range
+    Returns 30 events per page with pagination
     """
     print(region)
     try:
@@ -62,13 +64,17 @@ async def handle_search_event(
             query["region"] = region
         if shower != "All":
             query["shower"] = shower
+        
+        # Pagination settings
+        items_per_page = 30
+        skip = (page - 1) * items_per_page
             
-        # Find events
+        # Find events with pagination
         events = []
         
         # If database is available, try to fetch from there
         try:
-            async for event in collection.find(query):
+            async for event in collection.find(query).skip(skip).limit(items_per_page):
                 # Serialize the document to handle ObjectId
                 serialized = serialize_doc(event)
                 events.append(serialized)
@@ -87,4 +93,52 @@ async def handle_search_event(
         raise HTTPException(
             status_code=500,
             detail=f"Internal Server Error: {str(err)}"
+        )
+
+async def handle_get_regions() -> List[str]:
+    """
+    Get all distinct regions from events collection
+    """
+    try:
+        collection = await get_events_collection()
+        
+        # Get distinct regions using aggregation
+        regions = await collection.distinct("region")
+        
+        # Filter out None and empty strings, and sort
+        regions = [r for r in regions if r]
+        regions.sort()
+        
+        return regions
+    
+    except Exception as err:
+        print(f"Get regions endpoint error: {str(err)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching regions: {str(err)}"
+        )
+
+async def handle_get_showers() -> List[str]:
+    """
+    Get all distinct showers from events collection
+    """
+    try:
+        collection = await get_events_collection()
+        
+        # Get distinct showers
+        showers = await collection.distinct("shower")
+        
+        # Filter out None and empty strings, and sort
+        showers = [s for s in showers if s]
+        showers.sort()
+        
+        return showers
+    
+    except Exception as err:
+        print(f"Get showers endpoint error: {str(err)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching showers: {str(err)}"
         )

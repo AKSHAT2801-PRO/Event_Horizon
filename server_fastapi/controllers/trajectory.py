@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from typing import Dict
 from bson import ObjectId
 import traceback
+import random
 
 def serialize_doc(doc):
     """Convert MongoDB documents to JSON-serializable format"""
@@ -18,22 +19,25 @@ def serialize_doc(doc):
 
 async def handle_random_trajectory() -> Dict:
     """
-    Get a random trajectory data for simulation preview
+    Get a random trajectory data for simulation preview using random library
     """
     try:
         collection = await get_trajectory_results_collection()
         
-        # Use MongoDB aggregation to get a random document
-        pipeline = [
-            {"$sample": {"size": 1}}
-        ]
+        # Get total count of documents
+        total_count = await collection.count_documents({})
         
-        result = await collection.aggregate(pipeline).to_list(1)
-        
-        if not result:
+        if total_count == 0:
             raise HTTPException(status_code=404, detail="No trajectory data available")
         
-        trajectory = result[0]
+        # Generate random offset using random library
+        random_offset = random.randint(0, total_count - 1)
+        
+        # Fetch the random document using skip and limit
+        trajectory = await collection.find_one({}, skip=random_offset)
+        
+        if not trajectory:
+            raise HTTPException(status_code=404, detail="No trajectory data available")
         
         start_point = trajectory.get("start_point", {})
         end_point = trajectory.get("end_point", {})
@@ -58,6 +62,10 @@ async def handle_random_trajectory() -> Dict:
     except Exception as err:
         print(f"Random trajectory endpoint error: {str(err)}")
         print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching random trajectory: {str(err)}"
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching random trajectory: {str(err)}"
