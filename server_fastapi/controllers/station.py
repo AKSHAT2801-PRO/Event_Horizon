@@ -26,6 +26,7 @@ async def handle_station(station_name: str) -> Dict:
         
         if station_data:
             data = {
+                "station_id": str(station_data.get("_id")),
                 "station_name": station_data.get("station_name"),
                 "latitude": station_data.get("location", {}).get("latitude"),
                 "longitude": station_data.get("location", {}).get("longitude"),
@@ -34,7 +35,7 @@ async def handle_station(station_name: str) -> Dict:
             }
             return serialize_doc(data)
         else:
-            raise HTTPException(status_code=204, detail="Station not found")
+            raise HTTPException(status_code=404, detail="Station not found")
     
     except HTTPException:
         raise

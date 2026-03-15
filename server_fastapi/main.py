@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from datetime import datetime
-from routers import event, station, trajectory
+from routers import event, station, trajectory, velocity_curve
 from database import connect_db, close_db, is_connected
 
 load_dotenv()
@@ -45,18 +45,31 @@ async def startup_event():
 async def shutdown_event():
     await close_db()
 
-# Include routers
-app.include_router(event.router, prefix="/event", tags=["event"])
-app.include_router(station.router, prefix="/station", tags=["station"])
-app.include_router(trajectory.router, prefix="/trajectory", tags=["trajectory"])
+# Include routers with /api prefix for Vercel
+app.include_router(event.router, prefix="/api/event", tags=["event"])
+app.include_router(station.router, prefix="/api/station", tags=["station"])
+app.include_router(trajectory.router, prefix="/api/trajectory", tags=["trajectory"])
+app.include_router(velocity_curve.router, prefix="/api/velocity-curve", tags=["velocity-curve"])
 
 @app.get("/")
 async def root():
     return {"message": "Event Horizon API"}
 
+@app.get("/api")
+async def api_root():
+    return {"message": "Event Horizon API", "version": "1.0.0"}
+
 @app.get("/health")
 async def health():
     """Health check endpoint"""
+    return {
+        "status": "ok",
+        "mongodb_connected": is_connected()
+    }
+
+@app.get("/api/health")
+async def api_health():
+    """API health check endpoint"""
     return {
         "status": "ok",
         "mongodb_connected": is_connected()

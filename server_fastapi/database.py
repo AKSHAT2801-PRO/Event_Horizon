@@ -57,3 +57,13 @@ async def get_trajectory_results_collection():
     if db is None:
         raise RuntimeError("Database not connected")
     return db["trajectory_results"]
+
+async def get_event_velocity_curve_collection():
+    if db is None:
+        raise RuntimeError("Database not connected")
+    return db["event_velocity_curve"]
+
+async def get_event_station_records_collection():
+    if db is None:
+        raise RuntimeError("Database not connected")
+    return db["event_station_records"]

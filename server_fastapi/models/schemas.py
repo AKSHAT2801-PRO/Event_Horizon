@@ -27,14 +27,19 @@ class Location(BaseModel):
 class Station(BaseModel):
     station_name: str
     location: Location
-    shower_code: str
 
 class StationResponse(BaseModel):
+    station_id: str  # MongoDB _id
     station_name: str
     latitude: float
     longitude: float
     altitude: float
     shower_code: str
+
+# Velocity Point Schema (needed for both Trajectory and EventVelocityCurve)
+class VelocityPoint(BaseModel):
+    t: float  # time
+    v: float  # velocity
 
 # Trajectory Schemas
 class Point(BaseModel):
@@ -64,3 +69,11 @@ class TrajectoryResponse(BaseModel):
     mass: float
     duration: float
     initial_velocity: float
+    event_id: str
+    velocity_curve: Optional[list[VelocityPoint]] = None  # Optional velocity curve data
+    stations: Optional[list[str]] = None  # Optional station codes for this event
+
+# Event Velocity Curve Schemas
+class EventVelocityCurveResponse(BaseModel):
+    event_name: str
+    velocity_curve: list[VelocityPoint]
