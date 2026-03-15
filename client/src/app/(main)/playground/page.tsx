@@ -1,13 +1,13 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Stats, OrbitControls } from "@react-three/drei";
+import { Stats, OrbitControls, Loader } from "@react-three/drei";
 import { GroundProvider } from "@/context/GroundContext";
 import Earth from "@/components/playground/earth";
 import { Meteor } from "@/components/playground/meteor";
 import { METEOR_DATA } from "@/components/playground/meteor/meteorData";
 import { Leva, useControls } from "leva";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { getMeteorTrajectory } from "@/lib/api/meteor";
 import { IMeteorTrajectory } from "@/types/api/meteor";
 
@@ -35,7 +35,8 @@ export default function PlayGround() {
   }, [useMockData]);
 
   return (
-    <div className="w-screen h-screen">
+    <div className="w-screen h-screen bg-black">
+      <Loader />
       <Leva collapsed />
       <Canvas
         camera={{
@@ -54,19 +55,21 @@ export default function PlayGround() {
               <axesHelper args={[10]} />
             </>
           )}
-          <ambientLight intensity={0.01} />
+          <ambientLight intensity={0.05} />
           <directionalLight position={[0, 0, -30]} />
           <OrbitControls
-            maxDistance={200}
-            // minDistance={100}
+            maxDistance={300}
+            minDistance={100}
             target={[0, 40, 0]}
             // maxPolarAngle={Math.PI / 2}
           />
-          <Earth animate>
-            {METEOR_DATA.map(({ id, ...props }) => (
-              <Meteor key={id} {...props} loop />
-            ))}
-          </Earth>
+          <Suspense fallback={null}>
+            <Earth animate>
+              {METEOR_DATA.map(({ id, ...props }) => (
+                <Meteor key={id} {...props} loop />
+              ))}
+            </Earth>
+          </Suspense>
         </GroundProvider>
       </Canvas>
     </div>

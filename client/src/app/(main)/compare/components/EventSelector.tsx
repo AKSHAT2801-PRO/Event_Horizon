@@ -79,7 +79,7 @@ const EventSelector = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-4 rounded-2xl bg-surface border border-border/50 max-h-[300px] overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-4 rounded-2xl bg-surface border border-border/50 max-h-75 overflow-y-auto">
               {METEOR_EVENTS.map((event) => {
                 const isSelected = selected.some((s) => s.id === event.id);
                 return (

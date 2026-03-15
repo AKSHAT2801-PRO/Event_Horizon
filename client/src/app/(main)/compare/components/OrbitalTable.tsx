@@ -39,7 +39,7 @@ const OrbitalTable = ({ events }: OrbitalTableProps) => {
         <Table>
           <TableHeader>
             <TableRow className="border-border/30">
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground w-[160px]">
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground w-40">
                 ELEMENT
               </TableHead>
               {events.map((event, i) => (

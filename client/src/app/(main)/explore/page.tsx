@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import MeteorCard from "@/components/MeteorCard";
 import EventDetail from "@/components/EventDetail";
 import PlaygroundButton from "@/components/PlaygroundButton";
 import { METEOR_EVENTS, FILTERS, type MeteorEvent } from "@/data/meteorEvents";
+import CompareNavButton from "@/components/CompareNavButton";
+import { getMeteorEvents } from "@/lib/api/meteor";
+import {
+  DateRangePicker,
+  type DateRange,
+} from "@/components/ui/date-range-picker";
 
 const FILTER_CATEGORIES = [
   { key: "shower", label: "SHOWER", options: FILTERS.shower },
@@ -17,37 +23,42 @@ const FILTER_CATEGORIES = [
 const Index = () => {
   const [search, setSearch] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<MeteorEvent | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filteredData, setFilteredData] = useState<MeteorEvent[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({
     shower: "All",
     region: "All",
     network: "All",
+  });
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: null,
+    to: null,
   });
 
   const toggleFilter = (category: string, value: string) => {
     setFilters((prev) => ({ ...prev, [category]: value }));
   };
 
-  const filtered = useMemo(() => {
-    return METEOR_EVENTS.filter((e) => {
-      const q = search.toLowerCase();
-      const matchSearch =
-        !q ||
-        e.name.toLowerCase().includes(q) ||
-        e.region.toLowerCase().includes(q) ||
-        e.shower.toLowerCase().includes(q) ||
-        e.network.toLowerCase().includes(q) ||
-        e.date.includes(q);
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      const result = await getMeteorEvents({
+        searchString: search,
+        filters: {
+          shower: filters.shower,
+          region: filters.region,
+          network: filters.network,
+          dateFrom: dateRange.from?.toISOString().split("T")[0],
+          dateTo: dateRange.to?.toISOString().split("T")[0],
+        },
+      });
 
-      const matchShower =
-        filters.shower === "All" || e.shower === filters.shower;
-      const matchRegion =
-        filters.region === "All" || e.region === filters.region;
-      const matchNetwork =
-        filters.network === "All" || e.network === filters.network;
+      if (result) {
+        setFilteredData(result);
+      }
+    }, 400);
 
-      return matchSearch && matchShower && matchRegion && matchNetwork;
-    });
-  }, [search, filters]);
+    return () => clearTimeout(timeout);
+  }, [search, filters, dateRange]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,7 +69,7 @@ const Index = () => {
           animate={{ opacity: 1 }}
           className="mb-4"
         >
-          <span className="data-label">BOLIDE CATALOG</span>
+          <span className="data-label">TEAM - EVENT HORIZON</span>
           <h1 className="text-5xl sm:text-7xl md:text-9xl font-bold tracking-tighter uppercase mt-2">
             BROWSE THE VOID.
           </h1>
@@ -70,6 +81,11 @@ const Index = () => {
         {/* Playground Button */}
         <div className="my-8 sm:my-12">
           <PlaygroundButton />
+        </div>
+
+        {/* Explore Button */}
+        <div className="w-full my-4 flex justify-center items-center">
+          <CompareNavButton />
         </div>
 
         {/* Search */}
@@ -90,36 +106,66 @@ const Index = () => {
         </div>
 
         {/* Filters */}
-        {FILTER_CATEGORIES.map((cat) => (
-          <div key={cat.key} className="mb-6">
-            <span className="data-label mb-3 block">{cat.label}</span>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {cat.options.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => toggleFilter(cat.key, opt)}
-                  className={`filter-chip whitespace-nowrap ${
-                    filters[cat.key] === opt ? "active" : ""
-                  }`}
-                >
-                  {opt}
-                </button>
+        <div className="mb-8">
+          <button
+            onClick={() => setFiltersOpen((p) => !p)}
+            className="data-label flex items-center gap-3 hover:opacity-70 transition text-3xl"
+          >
+            FILTERS
+            <span className="font-mono text-xl">{filtersOpen ? "▲" : "▼"}</span>
+          </button>
+
+          <motion.div
+            initial={false}
+            animate={{
+              height: filtersOpen ? "auto" : 0,
+              opacity: filtersOpen ? 1 : 0,
+            }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-6 space-y-6">
+              {/* Chip filters */}
+              {FILTER_CATEGORIES.map((cat) => (
+                <div key={cat.key}>
+                  <span className="data-label mb-3 block">{cat.label}</span>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {cat.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => toggleFilter(cat.key, opt)}
+                        className={`filter-chip whitespace-nowrap ${
+                          filters[cat.key] === opt ? "active" : ""
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
+
+              {/* Date Range Picker */}
+              <div>
+                <span className="data-label mb-3 block">DATE RANGE</span>
+                <DateRangePicker value={dateRange} onChange={setDateRange} />
+              </div>
             </div>
-          </div>
-        ))}
+          </motion.div>
+        </div>
 
         {/* Results count */}
         <div className="my-8">
           <span className="data-label">
-            {filtered.length} EVENT{filtered.length !== 1 ? "S" : ""} DETECTED
+            {filteredData.length} EVENT{filteredData.length !== 1 ? "S" : ""}{" "}
+            DETECTED
           </span>
         </div>
 
         {/* Event Grid */}
-        {filtered.length > 0 ? (
+        {filteredData.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            {filtered.map((event, i) => (
+            {filteredData.map((event, i) => (
               <MeteorCard
                 key={event.id}
                 event={event}

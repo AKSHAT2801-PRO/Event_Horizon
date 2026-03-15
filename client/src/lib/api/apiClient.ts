@@ -5,6 +5,7 @@ export const apiClient = axios.create({
   timeout: 60_000,
   headers: {
     Accept: "application/json",
+    "ngrok-skip-browser-warning": "true",
   },
   //   withCredentials: true,
 });
