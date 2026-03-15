@@ -57,6 +57,11 @@ async def handle_search_event(
                 query["date"] = {"$gte": start_date, "$lte": end_date}
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=f"Invalid date format: {str(e)}")
+        
+        if region != "All":
+            query["region"] = region
+        if shower != "All":
+            query["shower"] = shower
             
         # Find events
         events = []
