@@ -24,7 +24,6 @@ interface MeteorEventsProps {
   filters?: {
     shower: string;
     region: string;
-    network: string;
     dateTo?: string;
     dateFrom?: string;
   };
@@ -35,7 +34,6 @@ export const getMeteorEvents = async ({
   filters = {
     shower: "All",
     region: "All",
-    network: "All",
     dateFrom: "",
     dateTo: "",
   },

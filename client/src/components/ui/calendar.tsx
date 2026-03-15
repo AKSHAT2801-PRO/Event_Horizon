@@ -1,11 +1,61 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, useDayPicker } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+
+function YearMonthCaption({
+  calendarMonth,
+}: {
+  calendarMonth: { date: Date };
+}) {
+  const { goToMonth } = useDayPicker();
+  const month = calendarMonth.date;
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 201 }, (_, i) => currentYear - 100 + i);
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDate = new Date(month);
+    newDate.setFullYear(parseInt(e.target.value, 10));
+    goToMonth(newDate);
+  };
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDate = new Date(month);
+    newDate.setMonth(parseInt(e.target.value, 10));
+    goToMonth(newDate);
+  };
+
+  return (
+    <div className="flex justify-center items-center gap-1 w-full pt-1">
+      <select
+        value={month.getMonth()}
+        onChange={handleMonthChange}
+        className="text-sm font-medium bg-transparent border-none outline-none cursor-pointer hover:opacity-70 transition-opacity"
+      >
+        {Array.from({ length: 12 }, (_, i) => (
+          <option key={i} value={i}>
+            {new Date(2000, i).toLocaleString("default", { month: "long" })}
+          </option>
+        ))}
+      </select>
+      <select
+        value={month.getFullYear()}
+        onChange={handleYearChange}
+        className="text-sm font-medium bg-transparent border-none outline-none cursor-pointer hover:opacity-70 transition-opacity"
+      >
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 function Calendar({
   className,
@@ -59,6 +109,7 @@ function Calendar({
           ) : (
             <ChevronRight {...props} className="h-4 w-4" />
           ),
+        MonthCaption: YearMonthCaption,
       }}
       {...props}
     />

@@ -168,7 +168,24 @@ export const METEOR_EVENTS: MeteorEvent[] = [
 ];
 
 export const FILTERS = {
-  shower: ["All", "Sporadic", "Geminids", "Perseids", "Leonids", "Quadrantids", "Draconids", "Eta Aquariids"],
-  region: ["All", "North America", "South America", "Europe", "Asia", "Africa", "Oceania", "Russia"],
-  network: ["All", "USG Sensors", "NASA AllSky", "FRIPON", "CAMS", "SonotaCo", "BRAMON", "DFN", "Video Network"],
+  shower: [
+    "All",
+    "Sporadic",
+    "Geminids",
+    "Perseids",
+    "Leonids",
+    "Quadrantids",
+    "Draconids",
+    "Eta Aquariids",
+  ],
+  region: [
+    "All",
+    "North America",
+    "South America",
+    "Europe",
+    "Asia",
+    "Africa",
+    "Oceania",
+    "Russia",
+  ],
 };

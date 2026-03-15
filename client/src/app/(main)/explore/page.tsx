@@ -19,7 +19,6 @@ import { Calendar } from "@/components/ui/calendar";
 const FILTER_CATEGORIES = [
   { key: "shower", label: "SHOWER", options: FILTERS.shower },
   { key: "region", label: "REGION", options: FILTERS.region },
-  { key: "network", label: "NETWORK", options: FILTERS.network },
 ] as const;
 
 const Index = () => {
@@ -46,7 +45,6 @@ const Index = () => {
         filters: {
           shower: filters.shower,
           region: filters.region,
-          network: filters.network,
           dateFrom: dateFrom?.toISOString(),
           dateTo: dateTo?.toISOString(),
         },

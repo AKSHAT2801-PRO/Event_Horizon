@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { MeteorEvent } from "@/data/meteorEvents";
+import PrimaryButton from "./ui/primary-button";
+import { useRouter } from "next/navigation";
 
 interface EventDetailProps {
   event: MeteorEvent | null;
@@ -15,6 +17,7 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 );
 
 const EventDetail = ({ event, onClose }: EventDetailProps) => {
+  const router = useRouter();
   return (
     <AnimatePresence>
       {event && (
@@ -53,21 +56,33 @@ const EventDetail = ({ event, onClose }: EventDetailProps) => {
             <div className="mb-6">
               <span className="data-label">PEAK MAGNITUDE</span>
               <p className="text-6xl sm:text-8xl font-bold font-mono tabular-nums tracking-tighter text-primary mt-1">
-                {event.peakMagnitude > 0 ? "+" : ""}{event.peakMagnitude.toFixed(1)}
+                {event.peakMagnitude > 0 ? "+" : ""}
+                {event.peakMagnitude.toFixed(1)}
               </p>
             </div>
 
             <div className="space-y-0">
               <Row label="DATE" value={event.date} />
-              <Row label="VELOCITY" value={`${event.velocity.toFixed(2)} KM/S`} />
+              <Row
+                label="VELOCITY"
+                value={`${event.velocity.toFixed(2)} KM/S`}
+              />
               <Row label="ALTITUDE" value={`${event.altitude.toFixed(1)} KM`} />
               <Row label="DURATION" value={`${event.duration.toFixed(1)} S`} />
               <Row label="MASS" value={`${event.mass.toLocaleString()} G`} />
               <Row label="REGION" value={event.region.toUpperCase()} />
               <Row label="NETWORK" value={event.network.toUpperCase()} />
               <Row label="SHOWER" value={event.shower.toUpperCase()} />
-              <Row label="COORDINATES" value={`${event.lat.toFixed(2)}° / ${event.lng.toFixed(2)}°`} />
+              <Row
+                label="COORDINATES"
+                value={`${event.lat.toFixed(2)}° / ${event.lng.toFixed(2)}°`}
+              />
             </div>
+            <PrimaryButton
+              onClick={() => router.push(`/playground?event=${event.id}`)}
+            >
+              Open in Playground
+            </PrimaryButton>
           </motion.div>
         </motion.div>
       )}
