@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { CalendarIcon, Search } from "lucide-react";
 import MeteorCard from "@/components/MeteorCard";
 import EventDetail from "@/components/EventDetail";
 import PlaygroundButton from "@/components/PlaygroundButton";
 import { METEOR_EVENTS, FILTERS, type MeteorEvent } from "@/data/meteorEvents";
 import CompareNavButton from "@/components/CompareNavButton";
 import { getMeteorEvents } from "@/lib/api/meteor";
-import {
-  DateRangePicker,
-  type DateRange,
-} from "@/components/ui/date-range-picker";
+import { Popover } from "@radix-ui/react-popover";
+import { PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 
 const FILTER_CATEGORIES = [
   { key: "shower", label: "SHOWER", options: FILTERS.shower },
@@ -30,10 +32,8 @@ const Index = () => {
     region: "All",
     network: "All",
   });
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: null,
-    to: null,
-  });
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   const toggleFilter = (category: string, value: string) => {
     setFilters((prev) => ({ ...prev, [category]: value }));
@@ -47,8 +47,8 @@ const Index = () => {
           shower: filters.shower,
           region: filters.region,
           network: filters.network,
-          dateFrom: dateRange.from?.toISOString().split("T")[0],
-          dateTo: dateRange.to?.toISOString().split("T")[0],
+          dateFrom: dateFrom?.toISOString(),
+          dateTo: dateTo?.toISOString(),
         },
       });
 
@@ -58,7 +58,7 @@ const Index = () => {
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [search, filters, dateRange]);
+  }, [search, filters, dateFrom, dateTo]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,10 +145,72 @@ const Index = () => {
                 </div>
               ))}
 
-              {/* Date Range Picker */}
-              <div>
+              {/* Date Range Filter */}
+              <div className="mb-6">
                 <span className="data-label mb-3 block">DATE RANGE</span>
-                <DateRangePicker value={dateRange} onChange={setDateRange} />
+                <div className="flex flex-wrap gap-3 items-stretch">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-56 py-10 justify-center text-left font-mono text-sm border-border bg-card hover:bg-secondary px-4 pl-1",
+                          !dateFrom && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFrom ? format(dateFrom, "yyyy-MM-dd") : "FROM"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={setDateFrom}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                        defaultMonth={dateFrom ?? new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-56 py-10 justify-center text-left font-mono text-sm border-border bg-card hover:bg-secondary px-4 pl-1",
+                          !dateFrom && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateTo ? format(dateTo, "yyyy-MM-dd") : "TO"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={setDateTo}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                        defaultMonth={dateTo ?? new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {(dateFrom || dateTo) && (
+                    <button
+                      onClick={() => {
+                        setDateFrom(undefined);
+                        setDateTo(undefined);
+                      }}
+                      className="filter-chip whitespace-nowrap text-xs"
+                    >
+                      CLEAR DATES
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
