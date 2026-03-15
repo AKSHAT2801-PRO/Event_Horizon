@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 const page = () => {
-  redirect("/playground");
+  redirect("/explore");
 };
 
 export default page;

@@ -1,26 +1,248 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ─── Theme ─────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", monospace;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Border radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Colors – mapped to CSS custom properties so they stay reactive */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-surface: hsl(var(--surface));
+  --color-surface-elevated: hsl(var(--surface-elevated));
+
+  /* Sidebar */
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  /* Keyframes */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-shutter: shutter-scan 1.5s ease-in-out infinite;
+}
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes shutter-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ─── Design tokens (CSS custom properties) ─────────────────────────────────── */
+:root {
+  --background: 240 20% 6%;
+  --foreground: 240 5% 96%;
+  --card: 240 15% 10%;
+  --card-foreground: 240 5% 96%;
+  --popover: 240 15% 10%;
+  --popover-foreground: 240 5% 96%;
+  --primary: 190 60% 55%;
+  --primary-foreground: 240 20% 6%;
+  --secondary: 240 10% 16%;
+  --secondary-foreground: 240 5% 96%;
+  --muted: 240 10% 18%;
+  --muted-foreground: 240 5% 50%;
+  --accent: 190 60% 55%;
+  --accent-foreground: 240 20% 6%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 10% 20%;
+  --input: 240 10% 20%;
+  --ring: 190 60% 55%;
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar-background: 240 15% 8%;
+  --sidebar-foreground: 240 5% 96%;
+  --sidebar-primary: 190 60% 55%;
+  --sidebar-primary-foreground: 240 20% 6%;
+  --sidebar-accent: 240 10% 14%;
+  --sidebar-accent-foreground: 240 5% 96%;
+  --sidebar-border: 240 10% 16%;
+  --sidebar-ring: 190 60% 55%;
+
+  /* Custom tokens */
+  --surface: 240 12% 9%;
+  --surface-elevated: 240 12% 12%;
+  --micro-bevel: 0 0% 100% / 0.1;
+  --ion-cyan: 190 60% 55%;
+  --label-dim: 0 0% 100% / 0.4;
+}
+
+/* ─── Base styles ────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  .font-mono {
+    font-family: "Geist Mono", "SF Mono", monospace;
+  }
+}
+
+/* ─── Component classes ──────────────────────────────────────────────────────── */
+@layer components {
+  .filter-chip {
+    height: 4rem; /* h-16 */
+    padding-inline: 1.5rem; /* px-6 */
+    border-radius: 9999px;
+    border-width: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: all 0.2s;
+    cursor: pointer;
+    user-select: none;
+    border-color: hsl(var(--micro-bevel));
+    color: hsl(var(--foreground));
+
+    @media (width >= 640px) {
+      height: 5rem; /* sm:h-20 */
+      padding-inline: 2.5rem; /* sm:px-10 */
+      font-size: 1.25rem; /* sm:text-xl */
+    }
+  }
+
+  .filter-chip:hover,
+  .filter-chip.active {
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+  }
+
+  .data-label {
+    font-size: 0.625rem; /* text-[10px] */
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-family: "Geist Mono", "SF Mono", monospace;
+    color: hsl(var(--label-dim));
+  }
+
+  .search-input {
+    font-size: 2.25rem; /* text-4xl */
+    font-weight: 700;
+    background: transparent;
+    border-bottom: 4px solid hsl(var(--border) / 0.2);
+    outline: none;
+    padding-bottom: 1rem;
+    letter-spacing: -0.05em;
+    width: 100%;
+    transition: border-color 0.2s;
+    color: hsl(var(--foreground));
+
+    @media (width >= 640px) {
+      font-size: 3.75rem;
+    } /* sm:text-6xl */
+    @media (width >= 768px) {
+      font-size: 6rem;
+    } /* md:text-8xl */
+  }
+
+  .search-input:focus {
+    border-bottom-color: hsl(var(--primary));
+  }
+
+  .search-input::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .meteor-card {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+    background: hsl(var(--surface));
+    outline: 1px solid hsl(var(--micro-bevel));
+    border-radius: 12px;
+    min-height: 300px;
+  }
+
+  .meteor-card:hover {
+    outline-color: hsl(var(--primary));
+    transform: scale(0.98);
+  }
+
+  .meteor-card:active {
+    transform: scale(0.96);
+  }
+
+  .playground-btn {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    transition: all 0.5s;
+    cursor: pointer;
+    height: 320px;
+  }
+
+  .playground-btn:hover {
+    outline: 4px solid hsl(var(--micro-bevel));
+  }
 }

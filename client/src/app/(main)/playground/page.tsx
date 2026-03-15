@@ -6,10 +6,37 @@ import { GroundProvider } from "@/context/GroundContext";
 import Earth from "@/components/playground/earth";
 import { Meteor } from "@/components/playground/meteor";
 import { METEOR_DATA } from "@/components/playground/meteor/meteorData";
+import { Leva, useControls } from "leva";
+import { useEffect, useState } from "react";
+import { getMeteorTrajectory } from "@/lib/api/meteor";
+import { IMeteorTrajectory } from "@/types/api/meteor";
 
 export default function PlayGround() {
+  const { useMockData } = useControls({
+    useMockData: true,
+  });
+  const [meteorData, setMeteorData] = useState<IMeteorTrajectory[] | null>(
+    null,
+  );
+
+  useEffect(() => {
+    console.log(process.env.NEXT_PUBLIC_BASE_API_URL);
+    const load = async () => {
+      const data = await getMeteorTrajectory();
+      if (data) {
+        setMeteorData([data]);
+        console.log(data);
+      }
+    };
+    if (useMockData) {
+      load();
+    } else {
+    }
+  }, [useMockData]);
+
   return (
     <div className="w-screen h-screen">
+      <Leva collapsed />
       <Canvas
         camera={{
           fov: 45,
