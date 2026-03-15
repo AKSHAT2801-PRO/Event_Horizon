@@ -11,7 +11,6 @@ import { GroundProvider } from "@/context/GroundContext";
 import Earth from "@/components/playground/earth";
 import { Meteor } from "@/components/playground/meteor";
 import { massToColor } from "@/components/playground/meteor/meteorData";
-import { Leva, useControls } from "leva";
 import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import {
   getMeteorTrajectory,
@@ -30,6 +29,7 @@ import {
   Pause,
   Play,
   Crosshair,
+  Globe,
 } from "lucide-react";
 import { MeteorSimProvider, useMeteorSim } from "@/context/MeteorSimContext";
 import * as THREE from "three";
@@ -269,7 +269,6 @@ function HitTooltip({ hit, onClose }: { hit: HitInfo; onClose: () => void }) {
           <span className="text-[10px] text-red-400 font-mono">not found</span>
         ) : (
           <div className="space-y-1">
-            <Row label="id" value={data._id} />
             <Row label="mass" value={`${data.mass.toExponential(2)} kg`} />
             <Row
               label="velocity"
@@ -340,7 +339,6 @@ function Row({ label, value }: { label: string; value: string }) {
 // ─── Inner component ──────────────────────────────────────────────────────────
 
 function PlayGroundInner() {
-  const { useMockData } = useControls({ useMockData: true });
   const {
     timeScale,
     sizeScale,
@@ -356,6 +354,7 @@ function PlayGroundInner() {
   const [isListOpen, setIsListOpen] = useState(true);
   const [isSimOpen, setIsSimOpen] = useState(true);
   const [hitInfo, setHitInfo] = useState<HitInfo | null>(null);
+  const [animateEarth, setAnimateEarth] = useState(true);
 
   const searchParams = useSearchParams();
   const eventId = searchParams.get("event") ?? undefined;
@@ -369,8 +368,8 @@ function PlayGroundInner() {
           setMeteorData((prev) => [...prev, trajectoryToMeteorData(data)]);
       }
     };
-    if (useMockData) load();
-  }, [useMockData, eventId, hasEventId]);
+    load();
+  }, [eventId, hasEventId]);
 
   const handleAddMeteor = useCallback(async () => {
     setLoadingCount((c) => c + 1);
@@ -408,7 +407,6 @@ function PlayGroundInner() {
   return (
     <div className="w-screen h-screen bg-black">
       <Loader />
-      <Leva collapsed />
 
       {/* ── Hit tooltip ── */}
       {hitInfo && <HitTooltip hit={hitInfo} onClose={() => setHitInfo(null)} />}
@@ -501,7 +499,7 @@ function PlayGroundInner() {
             </div>
             <div className="flex items-center gap-2">
               {/* Pause/Resume button */}
-              <button
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   togglePause();
@@ -515,7 +513,7 @@ function PlayGroundInner() {
               >
                 {paused ? <Play size={10} /> : <Pause size={10} />}
                 {paused ? "resume" : "pause"}
-              </button>
+              </div>
 
               {!simIsDefault && isSimOpen && (
                 <button
@@ -579,6 +577,22 @@ function PlayGroundInner() {
                   </button>
                 }
               />
+              <div className="w-full flex justify-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAnimateEarth((a) => !a);
+                  }}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-mono transition ${
+                    !animateEarth
+                      ? "bg-blue-500/15 border-blue-500/30 text-blue-400 hover:bg-blue-500/25"
+                      : "bg-white/5 border-white/10 text-white/50 hover:text-white/90 hover:bg-white/10"
+                  }`}
+                >
+                  <Globe size={10} />
+                  {!animateEarth ? "rotate earth" : "stop rotate earth"}
+                </button>
+              </div>
 
               {/* Raycast hint */}
               <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] text-white/25 font-mono">
@@ -611,7 +625,7 @@ function PlayGroundInner() {
           <directionalLight position={[0, 0, -30]} />
           <OrbitControls target={[0, 40, 0]} />
           <Suspense fallback={null}>
-            <Earth animate={!paused}>
+            <Earth animate={!paused && animateEarth}>
               {meteorData.map(({ id, ...props }) => (
                 <Meteor
                   id={id}
