@@ -40,7 +40,7 @@ export default function PlayGround() {
       <Canvas
         camera={{
           fov: 45,
-          position: [100, 50, 10],
+          position: [100, 50, -70],
           near: 0.1,
           far: 1000,
           zoom: 2.5,
@@ -55,7 +55,7 @@ export default function PlayGround() {
             </>
           )}
           <ambientLight intensity={0.01} />
-          <directionalLight position={[0, 20, -30]} />
+          <directionalLight position={[0, 0, -30]} />
           <OrbitControls
             maxDistance={200}
             // minDistance={100}
