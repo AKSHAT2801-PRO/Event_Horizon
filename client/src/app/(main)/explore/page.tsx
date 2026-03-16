@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { CalendarIcon, Search } from "lucide-react";
+import { CalendarIcon, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import MeteorCard from "@/components/MeteorCard";
 import EventDetail from "@/components/EventDetail";
 import PlaygroundButton from "@/components/PlaygroundButton";
@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 
+const ITEMS_PER_PAGE = 10; // adjust to match your backend's page size
+
 const Index = () => {
   const [search, setSearch] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<MeteorEvent | null>(null);
@@ -35,18 +37,41 @@ const Index = () => {
   const [regions, setRegions] = useState<string[]>(["All"]);
   const [showers, setShowers] = useState<string[]>(["All"]);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const FILTER_CATEGORIES = [
     { key: "shower", label: "SHOWER", options: showers },
     { key: "region", label: "REGION", options: regions },
   ] as const;
 
   const toggleFilter = (category: string, value: string) => {
+    // Reset to page 1 whenever filters change
+    setCurrentPage(1);
     setFilters((prev) => ({ ...prev, [category]: value }));
+  };
+
+  // Reset page when search or date filters change
+  const handleSearchChange = (value: string) => {
+    setCurrentPage(1);
+    setSearch(value);
+  };
+
+  const handleDateFromChange = (date: Date | undefined) => {
+    setCurrentPage(1);
+    setDateFrom(date);
+  };
+
+  const handleDateToChange = (date: Date | undefined) => {
+    setCurrentPage(1);
+    setDateTo(date);
   };
 
   useEffect(() => {
     const timeout = setTimeout(async () => {
       const result = await getMeteorEvents({
+        page: currentPage,
         searchString: search,
         filters: {
           shower: filters.shower,
@@ -58,27 +83,22 @@ const Index = () => {
 
       if (result) {
         setFilteredData(result);
+        // If your API returns total count/pages, update totalPages here.
+        // Example: setTotalPages(result.totalPages);
+        // For now we derive it from result length vs page size:
+        if (result.length < ITEMS_PER_PAGE && currentPage === 1) {
+          setTotalPages(1);
+        } else if (result.length < ITEMS_PER_PAGE) {
+          setTotalPages(currentPage);
+        } else {
+          // There may be more pages; keep totalPages at least currentPage + 1
+          setTotalPages((prev) => Math.max(prev, currentPage + 1));
+        }
       }
     }, 400);
 
-    const loadRegions = async () => {
-      const res = await getEventRegions();
-      if (res) {
-        setRegions(["All", ...res]);
-      }
-    };
-    const loadShowers = async () => {
-      const res = await getEventShowers();
-      if (res) {
-        setShowers(["All", ...res]);
-      }
-    };
-
-    loadRegions();
-    loadShowers();
-
     return () => clearTimeout(timeout);
-  }, [search, filters, dateFrom, dateTo]);
+  }, [search, filters, dateFrom, dateTo, currentPage]);
 
   useEffect(() => {
     const loadRegions = async () => {
@@ -93,6 +113,27 @@ const Index = () => {
     loadRegions();
     loadShowers();
   }, []);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Build visible page numbers (show up to 5 around current)
+  const getPageNumbers = () => {
+    const pages: (number | "...")[] = [];
+    const delta = 2;
+    const left = Math.max(2, currentPage - delta);
+    const right = Math.min(totalPages - 1, currentPage + delta);
+
+    pages.push(1);
+    if (left > 2) pages.push("...");
+    for (let i = left; i <= right; i++) pages.push(i);
+    if (right < totalPages - 1) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+
+    return pages;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,7 +174,7 @@ const Index = () => {
               type="text"
               placeholder="SEARCH EVENTS..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="search-input pl-12"
             />
           </div>
@@ -200,7 +241,7 @@ const Index = () => {
                       <Calendar
                         mode="single"
                         selected={dateFrom}
-                        onSelect={setDateFrom}
+                        onSelect={handleDateFromChange}
                         initialFocus
                         className="p-3 pointer-events-auto"
                         defaultMonth={dateFrom ?? new Date()}
@@ -225,7 +266,7 @@ const Index = () => {
                       <Calendar
                         mode="single"
                         selected={dateTo}
-                        onSelect={setDateTo}
+                        onSelect={handleDateToChange}
                         initialFocus
                         className="p-3 pointer-events-auto"
                         defaultMonth={dateTo ?? new Date()}
@@ -236,8 +277,8 @@ const Index = () => {
                   {(dateFrom || dateTo) && (
                     <button
                       onClick={() => {
-                        setDateFrom(undefined);
-                        setDateTo(undefined);
+                        handleDateFromChange(undefined);
+                        handleDateToChange(undefined);
                       }}
                       className="filter-chip whitespace-nowrap text-xs"
                     >
@@ -251,10 +292,13 @@ const Index = () => {
         </div>
 
         {/* Results count */}
-        <div className="my-8">
+        <div className="my-8 flex items-center justify-between">
           <span className="data-label">
             {filteredData.length} EVENT{filteredData.length !== 1 ? "S" : ""}{" "}
             DETECTED
+          </span>
+          <span className="font-mono text-xs text-muted-foreground">
+            PAGE {currentPage} / {totalPages}
           </span>
         </div>
 
@@ -279,6 +323,63 @@ const Index = () => {
             <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-muted-foreground">
               NO IMPACTS DETECTED IN THIS SECTOR.
             </p>
+          </motion.div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-12 flex items-center justify-center gap-2 font-mono"
+          >
+            {/* Prev */}
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center justify-center w-10 h-10 border border-border bg-card hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition"
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {/* Page numbers */}
+            {getPageNumbers().map((page, idx) =>
+              page === "..." ? (
+                <span
+                  key={`ellipsis-${idx}`}
+                  className="w-10 h-10 flex items-center justify-center text-muted-foreground text-sm"
+                >
+                  …
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page as number)}
+                  className={cn(
+                    "w-10 h-10 flex items-center justify-center border text-sm transition",
+                    currentPage === page
+                      ? "border-foreground bg-foreground text-background font-bold"
+                      : "border-border bg-card hover:bg-secondary text-foreground",
+                  )}
+                  aria-label={`Page ${page}`}
+                  aria-current={currentPage === page ? "page" : undefined}
+                >
+                  {page}
+                </button>
+              ),
+            )}
+
+            {/* Next */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="flex items-center justify-center w-10 h-10 border border-border bg-card hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition"
+              aria-label="Next page"
+            >
+              <ChevronRight size={16} />
+            </button>
           </motion.div>
         )}
       </div>

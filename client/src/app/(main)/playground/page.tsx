@@ -622,7 +622,7 @@ function PlayGroundInner() {
           fov: 45,
           position: [100, 50, -70],
           near: 0.1,
-          far: 1000000,
+          far: 10000,
           zoom: 2.5,
         }}
         shadows
@@ -636,7 +636,11 @@ function PlayGroundInner() {
           )}
           <ambientLight intensity={0.05} />
           <directionalLight position={[0, 0, -30]} />
-          <OrbitControls target={[0, 40, 0]} />
+          <OrbitControls
+            minDistance={100}
+            maxDistance={700}
+            target={[0, 40, 0]}
+          />
           <Suspense fallback={null}>
             <Earth animate={!paused && animateEarth}>
               {meteorData.map(({ id, ...props }) => (
